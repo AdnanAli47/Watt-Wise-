@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WATT.WISE — Household Electricity Consumption Analyzer</title>
+  <meta name="description" content="Watt.Wise is your intelligent household electricity consumption analyzer. Monitor, analyze, and reduce your energy usage with real-time insights and smart recommendations.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="WATT.WISE — Household Electricity Consumption Analyzer">
+  <meta property="og:description" content="Monitor, analyze, and reduce your household energy usage with Watt.Wise.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Six+Caps&family=Manrope:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ══ Reset ══ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black:   #000000;
+      --white:   #ffffff;
+      --gray:    #a8a8a8;
+      --gray2:   rgba(255,255,255,0.5);
+      --border:  rgba(255,255,255,0.10);
+      --bdark:   rgba(0,0,0,0.10);
+      --green:   #b8ff45;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Manrope', sans-serif;
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      cursor: none;
+      overflow-x: hidden;
+    }
+    a  { color: inherit; text-decoration: none; }
+    img { display: block; width: 100%; }
+    button { cursor: none; border: none; background: none; font-family: 'Manrope', sans-serif; }
+    input, select { font-family: 'Manrope', sans-serif; }
+
+    /* ══ Custom Cursor ══ */
+    #cursor {
+      width: 9px; height: 9px; background: var(--white); border-radius: 50%;
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%); mix-blend-mode: difference;
+      transition: width .22s, height .22s;
+    }
+    #cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(255,255,255,.5); border-radius: 50%;
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: width .25s, height .25s, border-color .25s;
+    }
+
+    /* ══ Grain ══ */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9990; opacity: .28;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+    }
+
+    /* ══ Navbar ══ */
+    #navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 48px;
+      transition: background .4s, border-bottom .4s;
+    }
+    #navbar.scrolled {
+      background: rgba(0,0,0,.88);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Six Caps', sans-serif; font-size: 24px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--white);
+    }
+    .nav-links { display: flex; gap: 44px; list-style: none; position: absolute; left: 50%; transform: translateX(-50%); }
+    .nav-links a {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      letter-spacing: .06em; color: var(--white); opacity: .65; transition: opacity .2s;
+      text-transform: uppercase;
+    }
+    .nav-links a:hover { opacity: 1; }
+    .nav-right { display: flex; align-items: center; gap: 18px; }
+    .nav-menu-btn {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      letter-spacing: .06em; text-transform: uppercase;
+      color: var(--white); opacity: .65; transition: opacity .2s;
+    }
+    .nav-menu-btn:hover { opacity: 1; }
+    .nav-lines { display: flex; flex-direction: column; gap: 5px; width: 20px; }
+    .nav-lines span { display: block; height: 1px; background: var(--white); }
+    .nav-lines span:last-child { width: 65%; }
+
+    /* ══ HERO ══ */
+    #hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      overflow: hidden; background: var(--black);
+    }
+    .hero-headline { width: 100%; user-select: none; line-height: .88; overflow: hidden; }
+    .hero-row { display: flex; width: 100%; }
+    .h-word {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(96px,14.5vw,196px);
+      letter-spacing: -.01em; text-transform: uppercase;
+      display: inline-block; white-space: nowrap; color: var(--white);
+      transform: translateY(110%);
+      animation: slideUp .95s cubic-bezier(.16,1,.3,1) forwards;
+    }
+    .h-word.dim { color: var(--gray); }
+    .h-word:nth-child(1) { animation-delay: .04s; }
+    .h-word:nth-child(2) { animation-delay: .16s; }
+    .h-word:nth-child(3) { animation-delay: .28s; }
+    .h-word:nth-child(4) { animation-delay: .40s; }
+    @keyframes slideUp { to { transform: translateY(0); } }
+
+    .hero-bottom {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 22px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid var(--border);
+    }
+    .hero-btm-links { display: flex; gap: 52px; list-style: none; }
+    .hero-btm-links a {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--white); opacity: .55; transition: opacity .2s;
+    }
+    .hero-btm-links a:hover { opacity: 1; }
+    .hero-scroll {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--gray);
+    }
+
+    /* ══ MARQUEE ══ */
+    .marquee-wrap {
+      overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 16px 0; background: var(--black);
+      white-space: nowrap;
+    }
+    .marquee-track { display: inline-flex; animation: marquee 24s linear infinite; }
+    .marquee-track span {
+      font-family: 'Six Caps', sans-serif; font-size: 18px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gray);
+      padding: 0 48px;
+    }
+    .marquee-track span.sep { color: var(--white); font-size: 12px; vertical-align: middle; }
+    @keyframes marquee { to { transform: translateX(-50%); } }
+
+    /* ══ ABOUT ══ */
+    #about {
+      background: var(--black); padding: 130px 48px 100px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .about-tagline {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(36px,4.5vw,64px);
+      line-height: 1.05; letter-spacing: .01em; text-transform: uppercase;
+      color: var(--white); max-width: 900px; margin: 0 auto 80px; text-align: center;
+      opacity: 0; transform: translateY(40px); transition: opacity .8s, transform .8s;
+    }
+    .about-tagline.visible { opacity: 1; transform: translateY(0); }
+    .about-tagline span { color: var(--gray); }
+    .about-sub {
+      display: grid; grid-template-columns: 200px 1fr 170px;
+      gap: 40px; align-items: start; max-width: 1100px; margin: 0 auto;
+    }
+    .about-label {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--gray);
+    }
+    .about-desc {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 17px;
+      line-height: 1.8; color: var(--gray2);
+    }
+    .about-badge {
+      position: relative; width: 120px; height: 120px; margin-left: auto;
+    }
+    .badge-ring {
+      width: 120px; height: 120px; border: 1px solid rgba(255,255,255,.2);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      animation: spin 14s linear infinite;
+    }
+    .badge-ring-text { position: absolute; inset: 0; }
+    .badge-ring-text svg { width: 100%; height: 100%; }
+    .badge-ring-text text {
+      fill: var(--white); font-family: 'Manrope', sans-serif;
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase; font-weight: 300;
+    }
+    .badge-arrow { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══ HOW IT WORKS ══ */
+    #how-it-works {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .hiw-header {
+      padding: 80px 48px 0; text-align: center;
+    }
+    .section-eyebrow {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .22em; text-transform: uppercase; color: var(--gray);
+      display: block; margin-bottom: 18px;
+    }
+    .section-title {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(56px,10vw,140px);
+      letter-spacing: .04em; text-transform: uppercase; color: var(--white); line-height: 1;
+    }
+    .hiw-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      margin-top: 72px; border-top: 1px solid var(--border);
+    }
+    .hiw-card {
+      padding: 52px 44px 52px;
+      border-right: 1px solid var(--border);
+      position: relative; overflow: hidden;
+      transition: background .35s;
+    }
+    .hiw-card:last-child { border-right: none; }
+    .hiw-card:hover { background: rgba(255,255,255,.025); }
+    .hiw-num {
+      font-family: 'Six Caps', sans-serif; font-size: 96px; line-height: 1;
+      color: rgba(255,255,255,.06); position: absolute; top: 20px; right: 28px;
+      letter-spacing: -.02em;
+    }
+    .hiw-icon-line {
+      width: 36px; height: 1px; background: var(--white); margin-bottom: 32px;
+    }
+    .hiw-card-title {
+      font-family: 'Six Caps', sans-serif; font-size: 36px;
+      letter-spacing: .04em; text-transform: uppercase; color: var(--white);
+      margin-bottom: 18px; line-height: 1.05;
+    }
+    .hiw-card-desc {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      line-height: 1.8; color: var(--gray2);
+    }
+
+    /* ══ ANALYZER ══ */
+    #analyzer {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .analyzer-header {
+      padding: 80px 48px 60px; text-align: center;
+    }
+    .analyzer-subtitle {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 16px;
+      color: var(--gray2); margin-top: 18px; max-width: 520px;
+      margin-left: auto; margin-right: auto; line-height: 1.75; letter-spacing: .02em;
+    }
+    .analyzer-shell {
+      margin: 0 48px 0;
+      border: 1px solid var(--border);
+      display: grid; grid-template-columns: 1fr 360px;
+    }
+    .analyzer-left { border-right: 1px solid var(--border); }
+    .atable-head {
+      display: grid; grid-template-columns: 2fr .9fr 1.1fr .85fr .5fr;
+      padding: 16px 28px; border-bottom: 1px solid var(--border);
+    }
+    .ath {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gray);
+    }
+    .appliance-rows { min-height: 160px; }
+    .appliance-row {
+      display: grid; grid-template-columns: 2fr .9fr 1.1fr .85fr .5fr;
+      align-items: center; padding: 0 28px;
+      border-bottom: 1px solid var(--border); transition: background .2s;
+    }
+    .appliance-row:hover { background: rgba(255,255,255,.025); }
+    .row-name {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      color: var(--white); padding: 16px 0;
+    }
+    .appliance-row input[type="number"] {
+      width: 76px; background: transparent;
+      border: 1px solid var(--border); color: var(--white);
+      padding: 7px 9px; font-size: 14px; font-weight: 300; outline: none;
+      transition: border-color .2s; -moz-appearance: textfield;
+    }
+    .appliance-row input[type="number"]::-webkit-inner-spin-button,
+    .appliance-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .appliance-row input[type="number"]:focus { border-color: rgba(255,255,255,.45); }
+    .row-kwh {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 14px; color: var(--gray);
+    }
+    .row-del {
+      width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--gray); transition: border-color .2s, color .2s;
+    }
+    .row-del:hover { border-color: rgba(255,80,80,.6); color: rgba(255,80,80,.9); }
+    .add-bar {
+      display: flex; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .add-select {
+      flex: 1; background: transparent; border: none; border-right: 1px solid var(--border);
+      color: var(--white); font-size: 14px; font-weight: 300;
+      padding: 16px 28px; outline: none;
+      appearance: none; -webkit-appearance: none;
+    }
+    .add-select option { background: #111; color: var(--white); }
+    .add-btn {
+      padding: 16px 28px;
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--white);
+      transition: color .2s;
+    }
+    .add-btn:hover { color: var(--green); }
+    .settings-row { display: flex; border-bottom: 1px solid var(--border); }
+    .setting-cell {
+      flex: 1; padding: 20px 28px; border-right: 1px solid var(--border);
+    }
+    .setting-cell:last-child { border-right: none; }
+    .setting-lbl {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;
+    }
+    .setting-cell input {
+      width: 100%; background: transparent; border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--white); font-size: 28px; font-weight: 200;
+      padding: 4px 0; outline: none; transition: border-color .2s;
+      -moz-appearance: textfield;
+    }
+    .setting-cell input::-webkit-inner-spin-button,
+    .setting-cell input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .setting-cell input:focus { border-bottom-color: rgba(255,255,255,.45); }
+    .setting-unit {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      color: var(--gray); margin-top: 4px; letter-spacing: .04em;
+    }
+
+    /* result panel */
+    .analyzer-right { display: flex; flex-direction: column; }
+    .res-block { padding: 28px 26px; border-bottom: 1px solid var(--border); }
+    .res-block:last-child { border-bottom: none; }
+    .res-lbl {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;
+    }
+    .res-val {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(40px,4.5vw,66px);
+      line-height: 1; color: var(--white); letter-spacing: .02em;
+    }
+    .res-unit {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 14px;
+      color: var(--gray); margin-left: 5px; vertical-align: middle;
+    }
+    .res-sub {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-top: 4px; letter-spacing: .02em;
+    }
+
+    /* donut */
+    .res-chart { padding: 24px 26px; border-bottom: 1px solid var(--border); }
+    .donut-wrap { display: flex; align-items: center; gap: 20px; margin-top: 14px; }
+    .donut-legend { display: flex; flex-direction: column; gap: 9px; }
+    .leg-item { display: flex; align-items: center; gap: 9px; }
+    .leg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .leg-txt {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px; color: var(--gray);
+    }
+    .leg-txt strong { color: var(--white); font-weight: 400; }
+
+    /* rating */
+    .res-rating { padding: 24px 26px; border-bottom: 1px solid var(--border); }
+    .rating-bg { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; margin-top: 14px; }
+    .rating-fill { height: 100%; border-radius: 2px; transition: width .9s cubic-bezier(.16,1,.3,1), background .5s; }
+    .rating-txt {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-top: 7px; letter-spacing: .02em;
+    }
+
+    /* tips */
+    .res-tips { padding: 24px 26px; }
+    .tip-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .tip-row:last-child { border-bottom: none; }
+    .tip-bullet {
+      width: 4px; height: 4px; border-radius: 50%; background: var(--gray);
+      flex-shrink: 0; margin-top: 8px;
+    }
+    .tip-txt {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      line-height: 1.65; color: var(--gray2);
+    }
+
+    /* calc button */
+    .calc-btn-row { margin: 2px 48px 0; }
+    .calc-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 22px 36px;
+      background: var(--white); color: var(--black);
+      font-family: 'Six Caps', sans-serif; font-size: 24px;
+      letter-spacing: .14em; text-transform: uppercase;
+      transition: background .3s;
+    }
+    .calc-btn:hover { background: rgba(255,255,255,.88); }
+
+    /* ══ SERVICES ══ */
+    #services { background: var(--black); border-top: 1px solid var(--border); }
+    .services-hdr { padding: 80px 48px 50px; text-align: center; border-bottom: 1px solid var(--border); }
+    .svc-grid { display: grid; grid-template-columns: repeat(4,1fr); background: var(--white); }
+    .svc-card {
+      background: var(--white); color: var(--black);
+      padding: 44px 32px 40px;
+      border-right: 1px solid var(--bdark);
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 280px; position: relative; overflow: hidden;
+    }
+    .svc-card:last-child { border-right: none; }
+    .svc-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: var(--black); transform: translateY(100%);
+      transition: transform .45s cubic-bezier(.16,1,.3,1); z-index: 0;
+    }
+    .svc-card:hover::after { transform: translateY(0); }
+    .svc-card:hover .svc-name, .svc-card:hover .svc-arr { color: var(--white); }
+    .svc-name, .svc-arr { position: relative; z-index: 1; transition: color .3s; }
+    .svc-name {
+      font-family: 'Manrope', sans-serif; font-weight: 400; font-size: clamp(17px,1.8vw,22px);
+      color: var(--black); line-height: 1.35;
+    }
+    .svc-arr {
+      width: 42px; height: 42px; border: 1px solid rgba(0,0,0,.16); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: var(--black); transition: border-color .3s, color .3s;
+    }
+    .svc-card:hover .svc-arr { border-color: rgba(255,255,255,.28); }
+
+    /* ══ METHODOLOGY ══ */
+    #methodology {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .meth-header { padding: 80px 48px 0; }
+    .meth-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      margin-top: 72px;
+    }
+    .meth-left {
+      padding: 60px 48px;
+      border-right: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+    }
+    .meth-right {
+      border-top: 1px solid var(--border);
+    }
+    .meth-title-lg {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(52px,6vw,88px);
+      letter-spacing: .03em; text-transform: uppercase; color: var(--white);
+      line-height: 1; margin-bottom: 32px;
+    }
+    .meth-para {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 16px;
+      line-height: 1.85; color: var(--gray2); margin-bottom: 20px;
+    }
+    .meth-table { width: 100%; border-collapse: collapse; }
+    .meth-table tr { border-bottom: 1px solid var(--border); }
+    .meth-table tr:last-child { border-bottom: none; }
+    .meth-table td {
+      padding: 22px 28px;
+      font-family: 'Manrope', sans-serif; font-weight: 300;
+      vertical-align: top;
+    }
+    .meth-table td:first-child {
+      font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--gray); width: 40%; border-right: 1px solid var(--border);
+    }
+    .meth-table td:last-child { font-size: 15px; color: var(--gray2); line-height: 1.7; }
+
+    /* ══ NATIONAL COMPARE ══ */
+    #national-compare {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .nc-header { padding: 80px 48px 60px; }
+    .nc-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      border-top: 1px solid var(--border);
+    }
+    .nc-card {
+      padding: 48px 40px; border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .nc-card:last-child { border-right: none; }
+    .nc-label {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--gray);
+      margin-bottom: 20px;
+    }
+    .nc-value {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(52px,6vw,84px);
+      line-height: 1; color: var(--white); margin-bottom: 4px; letter-spacing: .02em;
+    }
+    .nc-value .nc-unit {
+      font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 300;
+      color: var(--gray); margin-left: 4px; vertical-align: middle;
+    }
+    .nc-sub {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-bottom: 28px; line-height: 1.6;
+    }
+    .nc-bar-bg { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+    .nc-bar-fill { height: 100%; border-radius: 2px; background: var(--white); transition: width 1.2s cubic-bezier(.16,1,.3,1); }
+    .nc-bar-fill.green { background: var(--green); }
+    .nc-bar-fill.amber { background: #f5c842; }
+    .nc-bar-fill.red   { background: #ff6b6b; }
+
+    /* Dynamic compare from analyzer */
+    .nc-compare-row {
+      display: flex; flex-direction: column; gap: 14px;
+      margin-top: 28px;
+    }
+    .nc-compare-item { }
+    .nc-compare-lbl {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .08em; color: var(--gray); margin-bottom: 6px;
+      display: flex; justify-content: space-between;
+    }
+    .nc-compare-bar-bg { height: 2px; background: rgba(255,255,255,.08); }
+    .nc-compare-bar { height: 100%; background: var(--white); transition: width 1s; }
+
+    /* ══ CASE STUDIES ══ */
+    #case-studies { background: var(--black); padding: 100px 48px; border-top: 1px solid var(--border); }
+    .cs-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 56px;
+    }
+    .cs-link {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); letter-spacing: .06em;
+      border-bottom: 1px solid var(--border); padding-bottom: 3px; transition: color .2s;
+    }
+    .cs-link:hover { color: var(--white); }
+    .cs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+    .cs-card { position: relative; overflow: hidden; aspect-ratio: 4/3; background: #111; }
+    .cs-card img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .7s cubic-bezier(.16,1,.3,1), filter .4s;
+      filter: grayscale(30%);
+    }
+    .cs-card:hover img { transform: scale(1.06); filter: grayscale(0%); }
+    .cs-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.88) 0%, transparent 55%);
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 36px;
+    }
+    .cs-tag {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gray); margin-bottom: 10px;
+    }
+    .cs-title {
+      font-family: 'Manrope', sans-serif; font-weight: 400;
+      font-size: clamp(16px,1.8vw,22px); line-height: 1.35;
+    }
+    .cs-arr {
+      position: absolute; top: 26px; right: 26px;
+      width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.28); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+      opacity: 0; transform: translateY(-5px); transition: opacity .3s, transform .3s;
+    }
+    .cs-card:hover .cs-arr { opacity: 1; transform: translateY(0); }
+
+    /* ══ STATS ══ */
+    #stats {
+      background: var(--black); padding: 80px 48px;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); }
+    .stat-item {
+      padding: 40px 32px; border-right: 1px solid var(--border);
+      opacity: 0; transform: translateY(28px); transition: opacity .6s, transform .6s;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item.visible { opacity: 1; transform: translateY(0); }
+    .stat-item:nth-child(2) { transition-delay: .1s; }
+    .stat-item:nth-child(3) { transition-delay: .2s; }
+    .stat-item:nth-child(4) { transition-delay: .3s; }
+    .stat-num {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(44px,5.5vw,80px);
+      letter-spacing: .02em; line-height: 1; color: var(--white);
+    }
+    .stat-suf { color: var(--gray); }
+    .stat-lbl {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-top: 10px; letter-spacing: .04em;
+    }
+
+    /* ══ CARBON IMPACT ══ */
+    #carbon {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .carbon-header { padding: 80px 48px 0; }
+    .carbon-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      border-top: 1px solid var(--border); margin-top: 64px;
+    }
+    .carbon-card {
+      padding: 52px 44px; border-right: 1px solid var(--border);
+      transition: background .3s;
+    }
+    .carbon-card:last-child { border-right: none; padding-bottom: 72px; }
+    .carbon-card:hover { background: rgba(255,255,255,.02); }
+    .carbon-card-num {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(52px,6vw,88px);
+      line-height: 1; color: var(--white); letter-spacing: .02em; margin-bottom: 4px;
+    }
+    .carbon-card-num .c-unit {
+      font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 300;
+      color: var(--gray); vertical-align: middle; margin-left: 4px;
+    }
+    .carbon-card-title {
+      font-family: 'Manrope', sans-serif; font-weight: 400; font-size: 15px;
+      color: var(--white); margin-bottom: 12px; letter-spacing: .01em;
+    }
+    .carbon-card-desc {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 14px;
+      line-height: 1.8; color: var(--gray2);
+    }
+    .carbon-divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+    /* ══ TESTIMONIALS ══ */
+    #testimonials {
+      background: var(--black); padding: 0;
+      border-top: 1px solid var(--border);
+    }
+    .test-header { padding: 80px 48px 0; display: flex; justify-content: space-between; align-items: flex-end; }
+    .test-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border); margin-top: 64px;
+    }
+    .test-card {
+      padding: 52px 48px; border-right: 1px solid var(--border);
+      transition: background .3s;
+    }
+    .test-card:nth-child(even) { border-right: none; }
+    .test-card:nth-child(n+3) { border-top: 1px solid var(--border); }
+    .test-card:hover { background: rgba(255,255,255,.02); }
+    .test-quote-mark {
+      font-family: 'Six Caps', sans-serif; font-size: 56px; color: rgba(255,255,255,.12);
+      line-height: 1; margin-bottom: 20px; display: block;
+    }
+    .test-quote {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 17px;
+      line-height: 1.8; color: var(--white); margin-bottom: 32px;
+    }
+    .test-author-name {
+      font-family: 'Manrope', sans-serif; font-weight: 500; font-size: 14px;
+      color: var(--white); letter-spacing: .04em;
+    }
+    .test-author-role {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-top: 3px; letter-spacing: .02em;
+    }
+    .test-divider { width: 28px; height: 1px; background: rgba(255,255,255,.25); margin-bottom: 16px; }
+
+    /* ══ TEAM ══ */
+    #team { background: var(--black); padding: 0 0 100px; border-top: 1px solid var(--border); }
+    .team-hdr { padding: 80px 48px 20px; text-align: center; }
+    .team-sub {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .22em; text-transform: uppercase; color: var(--gray); margin-top: 16px;
+    }
+    .team-sub span { color: var(--white); }
+    .team-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 2px; padding: 40px 48px 0;
+    }
+    .team-card { position: relative; overflow: hidden; aspect-ratio: 3/4; background: #111; }
+    .team-card img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: grayscale(40%);
+      transition: filter .5s, transform .6s cubic-bezier(.16,1,.3,1);
+    }
+    .team-card:hover img { filter: grayscale(0%); transform: scale(1.04); }
+    .team-info {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 24px;
+      background: linear-gradient(to top, rgba(0,0,0,.9) 0%, transparent 100%);
+    }
+    .team-name {
+      font-family: 'Manrope', sans-serif; font-weight: 500; font-size: 18px;
+    }
+    .team-role {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-top: 3px; letter-spacing: .03em;
+    }
+
+    /* ══ PRICING ══ */
+    #pricing { background: var(--black); padding: 100px 48px; border-top: 1px solid var(--border); }
+    .pricing-hdr { text-align: center; margin-bottom: 64px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; border: 1px solid var(--border); }
+    .p-card { padding: 48px 40px; border-right: 1px solid var(--border); transition: background .3s; }
+    .p-card:last-child { border-right: none; }
+    .p-card.featured { background: var(--white); color: var(--black); }
+    .p-badge {
+      display: inline-block; font-family: 'Manrope', sans-serif; font-weight: 300;
+      font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+      padding: 5px 14px; background: var(--white); color: var(--black);
+      border-radius: 100px; margin-bottom: 26px;
+    }
+    .p-card.featured .p-badge { background: var(--black); color: var(--white); }
+    .p-plan {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .16em; text-transform: uppercase; color: var(--gray); margin-bottom: 20px;
+    }
+    .p-card.featured .p-plan { color: rgba(0,0,0,.5); }
+    .p-price {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(52px,6vw,86px);
+      line-height: 1; color: var(--white);
+    }
+    .p-card.featured .p-price { color: var(--black); }
+    .p-per {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); margin-bottom: 20px; margin-top: 4px;
+    }
+    .p-card.featured .p-per { color: rgba(0,0,0,.5); }
+    .p-desc {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      line-height: 1.7; color: rgba(255,255,255,.55); margin-bottom: 26px; min-height: 62px;
+    }
+    .p-card.featured .p-desc { color: rgba(0,0,0,.58); }
+    .p-div { height: 1px; background: var(--border); margin-bottom: 24px; }
+    .p-card.featured .p-div { background: rgba(0,0,0,.12); }
+    .p-feats { list-style: none; margin-bottom: 36px; }
+    .p-feats li {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 14px;
+      color: rgba(255,255,255,.68); padding: 8px 0;
+      display: flex; align-items: center; gap: 11px;
+    }
+    .p-card.featured .p-feats li { color: rgba(0,0,0,.68); }
+    .p-feats li::before { content: ''; flex-shrink: 0; width: 4px; height: 4px; border-radius: 50%; background: var(--gray); }
+    .p-card.featured .p-feats li::before { background: rgba(0,0,0,.3); }
+    .p-cta {
+      display: block; width: 100%; padding: 13px 22px;
+      border: 1px solid var(--border);
+      font-family: 'Manrope', sans-serif; font-weight: 300;
+      font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--white); text-align: center;
+      transition: background .3s, color .3s, border-color .3s;
+    }
+    .p-cta:hover { background: var(--white); color: var(--black); border-color: var(--white); }
+    .p-card.featured .p-cta { background: var(--black); color: var(--white); border-color: var(--black); }
+    .p-card.featured .p-cta:hover { background: rgba(0,0,0,.82); border-color: rgba(0,0,0,.82); }
+
+    /* ══ INSIGHTS ══ */
+    #insights { background: var(--black); padding: 100px 48px; border-top: 1px solid var(--border); }
+    .ins-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 56px; }
+    .ins-link {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px;
+      color: var(--gray); letter-spacing: .06em; border-bottom: 1px solid var(--border);
+      padding-bottom: 3px; transition: color .2s;
+    }
+    .ins-link:hover { color: var(--white); }
+    .ins-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; border: 1px solid var(--border); }
+    .ins-card { padding: 36px 30px; border-right: 1px solid var(--border); transition: background .3s; }
+    .ins-card:last-child { border-right: none; }
+    .ins-card:hover { background: rgba(255,255,255,.03); }
+    .ins-date {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--gray); margin-bottom: 16px;
+    }
+    .ins-hl {
+      font-family: 'Manrope', sans-serif; font-weight: 500;
+      font-size: clamp(16px,1.6vw,20px); line-height: 1.35; margin-bottom: 16px;
+    }
+    .ins-ex {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 14px;
+      line-height: 1.75; color: var(--gray2);
+    }
+
+    /* ══ FAQ ══ */
+    #faq { background: var(--black); padding: 100px 48px; border-top: 1px solid var(--border); }
+    .faq-hdr { display: flex; justify-content: space-between; align-items: flex-start; gap: 80px; margin-bottom: 56px; }
+    .faq-intro {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 16px;
+      color: rgba(255,255,255,.55); line-height: 1.8; padding-top: 14px; max-width: 460px;
+    }
+    .faq-list { border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); overflow: hidden; }
+    .faq-q {
+      width: 100%; text-align: left; padding: 26px 0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Manrope', sans-serif; font-weight: 400; font-size: clamp(15px,1.5vw,19px);
+      color: var(--white); transition: color .2s;
+    }
+    .faq-q:hover { color: var(--gray); }
+    .faq-ico { font-size: 20px; font-weight: 300; transition: transform .35s; flex-shrink: 0; }
+    .faq-item.open .faq-ico { transform: rotate(45deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.16,1,.3,1); }
+    .faq-item.open .faq-a { max-height: 320px; }
+    .faq-a p {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      line-height: 1.8; color: rgba(255,255,255,.55);
+      padding-bottom: 26px; max-width: 720px;
+    }
+
+    /* ══ CTA ══ */
+    #cta { background: var(--black); padding: 120px 48px; text-align: center; border-top: 1px solid var(--border); }
+    .cta-title {
+      font-family: 'Six Caps', sans-serif; font-size: clamp(56px,9.5vw,136px);
+      letter-spacing: .03em; text-transform: uppercase;
+      color: var(--white); line-height: .94; margin-bottom: 44px;
+    }
+    .cta-title span { color: var(--gray); }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 14px;
+      padding: 15px 44px; border: 1px solid rgba(255,255,255,.25);
+      font-family: 'Manrope', sans-serif; font-weight: 300;
+      font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--white);
+      transition: background .3s, border-color .3s, color .3s;
+    }
+    .cta-btn:hover { background: var(--white); color: var(--black); border-color: var(--white); }
+
+    /* ══ FOOTER ══ */
+    footer { background: var(--black); padding: 64px 48px 40px; border-top: 1px solid var(--border); }
+    .footer-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 60px; }
+    .footer-logo {
+      font-family: 'Six Caps', sans-serif; font-size: 38px;
+      letter-spacing: .08em; color: var(--white); text-transform: uppercase;
+    }
+    .footer-tagline {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      color: var(--gray); margin-top: 8px; max-width: 260px; line-height: 1.65;
+    }
+    .footer-cols { display: flex; gap: 80px; }
+    .footer-col-lbl {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 11px;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--gray); margin-bottom: 18px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .footer-col a {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 15px;
+      color: rgba(255,255,255,.58); transition: color .2s;
+    }
+    .footer-col a:hover { color: var(--white); }
+    .footer-btm {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 28px; border-top: 1px solid var(--border);
+    }
+    .footer-copy {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 13px; color: var(--gray);
+    }
+    .footer-socials { display: flex; gap: 22px; }
+    .footer-socials a {
+      font-family: 'Manrope', sans-serif; font-weight: 300; font-size: 12px;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--gray); transition: color .2s;
+    }
+    .footer-socials a:hover { color: var(--white); }
+
+    /* ══ MOBILE MENU ══ */
+    #mob-menu {
+      position: fixed; inset: 0; background: var(--black); z-index: 2000;
+      display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+      padding: 80px 48px; opacity: 0; pointer-events: none; transition: opacity .4s;
+    }
+    #mob-menu.open { opacity: 1; pointer-events: auto; }
+    .mob-close { position: absolute; top: 24px; right: 48px; font-size: 28px; color: var(--white); }
+    .mob-links { list-style: none; }
+    .mob-links li { overflow: hidden; border-bottom: 1px solid var(--border); }
+    .mob-links a {
+      display: block; font-family: 'Six Caps', sans-serif; font-size: clamp(44px,7vw,76px);
+      letter-spacing: .04em; text-transform: uppercase; color: var(--white); padding: 12px 0;
+      transform: translateY(100%);
+      transition: color .2s, transform .5s cubic-bezier(.16,1,.3,1);
+    }
+    #mob-menu.open .mob-links a { transform: translateY(0); }
+    #mob-menu.open .mob-links li:nth-child(1) a { transition-delay: .04s; }
+    #mob-menu.open .mob-links li:nth-child(2) a { transition-delay: .08s; }
+    #mob-menu.open .mob-links li:nth-child(3) a { transition-delay: .12s; }
+    #mob-menu.open .mob-links li:nth-child(4) a { transition-delay: .16s; }
+    #mob-menu.open .mob-links li:nth-child(5) a { transition-delay: .20s; }
+    #mob-menu.open .mob-links li:nth-child(6) a { transition-delay: .24s; }
+    .mob-links a:hover { color: var(--gray); }
+
+    /* ══ REVEAL ══ */
+    .reveal { opacity: 0; transform: translateY(32px); transition: opacity .75s, transform .75s; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 1100px) {
+      .analyzer-shell { grid-template-columns: 1fr; }
+      .analyzer-right { border-top: 1px solid var(--border); }
+      .meth-grid { grid-template-columns: 1fr; }
+      .meth-right { border-top: 1px solid var(--border); }
+    }
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      .svc-grid { grid-template-columns: repeat(2,1fr); }
+      .cs-grid { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: repeat(2,1fr); }
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .ins-grid { grid-template-columns: 1fr; }
+      .footer-cols { gap: 36px; }
+      .about-sub { grid-template-columns: 1fr; }
+      .faq-hdr { flex-direction: column; gap: 16px; }
+      .hiw-grid { grid-template-columns: 1fr; }
+      .nc-grid { grid-template-columns: 1fr; }
+      .carbon-grid { grid-template-columns: 1fr; }
+      .test-grid { grid-template-columns: 1fr; }
+      .meth-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      #navbar, footer { padding-left: 22px; padding-right: 22px; }
+      #hero, #about, #how-it-works, #analyzer, #services, #methodology,
+      #national-compare, #case-studies, #stats, #carbon, #testimonials,
+      #team, #pricing, #insights, #faq, #cta { padding-left: 22px; padding-right: 22px; }
+      .hero-btm-links { gap: 20px; }
+      .hero-bottom { padding: 18px 22px; }
+      .analyzer-shell, .calc-btn-row { margin-left: 22px; margin-right: 22px; }
+      .footer-top { flex-direction: column; gap: 36px; }
+      .footer-cols { flex-direction: column; gap: 26px; }
+      .svc-grid { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .cs-header, .ins-header, .test-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- Mobile Menu -->
+  <div id="mob-menu" role="dialog" aria-modal="true">
+    <button class="mob-close" id="mob-close" aria-label="Close">&times;</button>
+    <ul class="mob-links">
+      <li><a href="#about"            onclick="closeMenu()">About</a></li>
+      <li><a href="#how-it-works"     onclick="closeMenu()">How It Works</a></li>
+      <li><a href="#analyzer"         onclick="closeMenu()">Analyzer</a></li>
+      <li><a href="#methodology"      onclick="closeMenu()">Methodology</a></li>
+      <li><a href="#pricing"          onclick="closeMenu()">Pricing</a></li>
+      <li><a href="#insights"         onclick="closeMenu()">Insights</a></li>
+    </ul>
+  </div>
+
+  <!-- Navbar -->
+  <nav id="navbar">
+    <a href="#hero" class="nav-logo">WATT</a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#analyzer">Analyzer</a></li>
+      <li><a href="#methodology">Methodology</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#insights">Insights</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="nav-menu-btn" id="mob-open">
+        Menu <div class="nav-lines"><span></span><span></span></div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section id="hero">
+    <div class="hero-headline">
+      <div class="hero-row"><span class="h-word">WATT.</span><span class="h-word dim">WISE.</span></div>
+      <div class="hero-row"><span class="h-word dim">ENERGY.</span><span class="h-word">SMART.</span></div>
+    </div>
+    <div class="hero-bottom">
+      <ul class="hero-btm-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#analyzer">Analyzer</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+      <span class="hero-scroll">Scroll to explore</span>
+    </div>
+  </section>
+
+  <!-- Marquee -->
+  <div class="marquee-wrap" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Real-Time Monitoring</span><span class="sep">/</span>
+      <span>Appliance Profiling</span><span class="sep">/</span>
+      <span>Bill Forecasting</span><span class="sep">/</span>
+      <span>Carbon Tracking</span><span class="sep">/</span>
+      <span>AI Recommendations</span><span class="sep">/</span>
+      <span>Solar Integration</span><span class="sep">/</span>
+      <span>EV Charging</span><span class="sep">/</span>
+      <span>Real-Time Monitoring</span><span class="sep">/</span>
+      <span>Appliance Profiling</span><span class="sep">/</span>
+      <span>Bill Forecasting</span><span class="sep">/</span>
+      <span>Carbon Tracking</span><span class="sep">/</span>
+      <span>AI Recommendations</span><span class="sep">/</span>
+      <span>Solar Integration</span><span class="sep">/</span>
+      <span>EV Charging</span><span class="sep">/</span>
+    </div>
+  </div>
+
+  <!-- ── ABOUT ── -->
+  <section id="about">
+    <p class="about-tagline">
+      We are pioneers in household<br><span>energy intelligence</span>, blending<br>smart analytics with sustainable living.
+    </p>
+    <div class="about-sub">
+      <p class="about-label">What We Do</p>
+      <p class="about-desc">We deliver real-time electricity monitoring, appliance-level analysis, and AI-driven recommendations that help households cut energy waste and lower bills — while reducing their environmental footprint across India and beyond.</p>
+      <div class="about-badge">
+        <div class="badge-ring"><span class="badge-arrow">&#9658;</span></div>
+        <div class="badge-ring-text">
+          <svg viewBox="0 0 120 120">
+            <defs><path id="cp" d="M 60,60 m -46,0 a 46,46 0 1,1 92,0 a 46,46 0 1,1 -92,0"/></defs>
+            <text><textPath href="#cp" startOffset="0%">SAVE ENERGY · REDUCE BILLS · GO GREEN · SAVE ENERGY ·</textPath></text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section id="how-it-works">
+    <div class="hiw-header">
+      <span class="section-eyebrow">Process</span>
+      <h2 class="section-title reveal">HOW IT<br>WORKS</h2>
+    </div>
+    <div class="hiw-grid">
+      <div class="hiw-card">
+        <span class="hiw-num">01</span>
+        <div class="hiw-icon-line"></div>
+        <h3 class="hiw-card-title">Connect Your Home</h3>
+        <p class="hiw-card-desc">Install a non-invasive clamp meter on your distribution board. No rewiring required. Our device syncs instantly with the Watt.Wise cloud platform via Wi-Fi, transmitting real-time voltage and current data every second.</p>
+      </div>
+      <div class="hiw-card">
+        <span class="hiw-num">02</span>
+        <div class="hiw-icon-line"></div>
+        <h3 class="hiw-card-title">AI Disaggregates Usage</h3>
+        <p class="hiw-card-desc">Our Non-Intrusive Load Monitoring (NILM) engine analyses your home's unique electrical signature to identify individual appliances — refrigerator, AC, geyser, EV charger — without a sensor on each device.</p>
+      </div>
+      <div class="hiw-card">
+        <span class="hiw-num">03</span>
+        <div class="hiw-icon-line"></div>
+        <h3 class="hiw-card-title">Receive Smart Insights</h3>
+        <p class="hiw-card-desc">Get daily reports, predictive bill alerts, carbon footprint tracking, and personalised saving recommendations. Compare your usage against local and national averages and track your progress month over month.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ANALYZER ── -->
+  <section id="analyzer">
+    <div class="analyzer-header">
+      <span class="section-eyebrow">Interactive Tool</span>
+      <h2 class="section-title reveal">ANALYZER</h2>
+      <p class="analyzer-subtitle">Add your appliances, set daily usage hours, and instantly compute your monthly consumption, estimated electricity bill, and carbon footprint.</p>
+    </div>
+
+    <div class="analyzer-shell">
+      <!-- Left -->
+      <div class="analyzer-left">
+        <div class="atable-head">
+          <span class="ath">Appliance</span>
+          <span class="ath">Watts</span>
+          <span class="ath">Hrs / Day</span>
+          <span class="ath">kWh / Mo</span>
+          <span class="ath"></span>
+        </div>
+        <div class="appliance-rows" id="appliance-rows"></div>
+        <div class="add-bar">
+          <select class="add-select" id="app-select">
+            <option value="">-- select appliance to add --</option>
+            <option value="Air Conditioner (1.5 ton)|1500">Air Conditioner (1.5 ton)</option>
+            <option value="Refrigerator|150">Refrigerator</option>
+            <option value="Washing Machine|500">Washing Machine</option>
+            <option value="Television (LED)|100">Television — LED</option>
+            <option value="Ceiling Fan|75">Ceiling Fan</option>
+            <option value="Water Heater / Geyser|2000">Water Heater / Geyser</option>
+            <option value="Microwave Oven|1200">Microwave Oven</option>
+            <option value="Laptop / Computer|65">Laptop / Computer</option>
+            <option value="Clothes Iron|1000">Clothes Iron</option>
+            <option value="Electric Kettle|1500">Electric Kettle</option>
+            <option value="Wi-Fi Router|10">Wi-Fi Router</option>
+            <option value="Induction Cooktop|2000">Induction Cooktop</option>
+            <option value="Mixer / Grinder|750">Mixer / Grinder</option>
+            <option value="LED Bulb|10">LED Bulb (10 W)</option>
+            <option value="Dishwasher|1400">Dishwasher</option>
+            <option value="Electric Oven|2000">Electric Oven</option>
+            <option value="Air Purifier|60">Air Purifier</option>
+            <option value="Custom|0">Custom appliance...</option>
+          </select>
+          <button class="add-btn" id="add-btn">+ Add Appliance</button>
+        </div>
+        <div class="settings-row">
+          <div class="setting-cell">
+            <p class="setting-lbl">Tariff Rate</p>
+            <input type="number" id="tariff" value="7" min="1" max="50" step="0.1">
+            <p class="setting-unit">Rs. per kWh</p>
+          </div>
+          <div class="setting-cell">
+            <p class="setting-lbl">Days in Month</p>
+            <input type="number" id="days" value="30" min="1" max="31" step="1">
+            <p class="setting-unit">days</p>
+          </div>
+          <div class="setting-cell">
+            <p class="setting-lbl">Occupants</p>
+            <input type="number" id="occupants" value="4" min="1" max="20" step="1">
+            <p class="setting-unit">persons</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="analyzer-right">
+        <div class="res-block">
+          <p class="res-lbl">Monthly Consumption</p>
+          <div class="res-val" id="r-kwh">0<span class="res-unit">kWh</span></div>
+          <p class="res-sub" id="r-daily-kwh">Daily average: 0 kWh</p>
+        </div>
+        <div class="res-block">
+          <p class="res-lbl">Estimated Monthly Bill</p>
+          <div class="res-val" id="r-bill">Rs.0<span class="res-unit">/ mo</span></div>
+          <p class="res-sub" id="r-per-head">Per person: Rs.0</p>
+        </div>
+        <div class="res-block">
+          <p class="res-lbl">CO2 Footprint</p>
+          <div class="res-val" id="r-co2">0<span class="res-unit">kg</span></div>
+          <p class="res-sub">India grid factor: 0.82 kg CO2 / kWh</p>
+        </div>
+        <div class="res-chart">
+          <p class="res-lbl">Top Consumers</p>
+          <div class="donut-wrap">
+            <svg id="donut" width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="34" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"/>
+              <circle id="donut-arc" cx="45" cy="45" r="34" fill="none" stroke="white" stroke-width="9"
+                stroke-dasharray="0 214" stroke-linecap="round" transform="rotate(-90 45 45)"
+                style="transition:stroke-dasharray .9s cubic-bezier(.16,1,.3,1)"/>
+            </svg>
+            <div class="donut-legend" id="donut-leg">
+              <p class="leg-txt" style="color:var(--gray)">Add appliances to see breakdown</p>
+            </div>
+          </div>
+        </div>
+        <div class="res-rating">
+          <p class="res-lbl">Efficiency Rating</p>
+          <div class="rating-bg"><div class="rating-fill" id="r-bar" style="width:0%"></div></div>
+          <p class="rating-txt" id="r-rating-txt">--</p>
+        </div>
+        <div class="res-tips">
+          <p class="res-lbl">Recommendations</p>
+          <div id="tips-list">
+            <div class="tip-row"><div class="tip-bullet"></div><p class="tip-txt">Add appliances above to receive personalised energy-saving recommendations.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="calc-btn-row" style="margin-top:2px;">
+      <button class="calc-btn" id="calc-btn">
+        Calculate Consumption <span>&#8594;</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── SERVICES ── -->
+  <section id="services">
+    <div class="services-hdr">
+      <span class="section-eyebrow">What We Offer</span>
+      <h2 class="section-title reveal">OUR SERVICES</h2>
+    </div>
+    <div class="svc-grid">
+      <article class="svc-card">
+        <h3 class="svc-name">Real-Time Energy Monitoring</h3>
+        <div class="svc-arr">&#8594;</div>
+      </article>
+      <article class="svc-card">
+        <h3 class="svc-name">Appliance-Level Profiling</h3>
+        <div class="svc-arr">&#8594;</div>
+      </article>
+      <article class="svc-card">
+        <h3 class="svc-name">Bill Forecast & Spike Alerts</h3>
+        <div class="svc-arr">&#8594;</div>
+      </article>
+      <article class="svc-card">
+        <h3 class="svc-name">AI Savings Recommendations</h3>
+        <div class="svc-arr">&#8594;</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── METHODOLOGY ── -->
+  <section id="methodology">
+    <div class="meth-header">
+      <span class="section-eyebrow">Science Behind It</span>
+      <h2 class="section-title reveal">METHODOLOGY</h2>
+    </div>
+    <div class="meth-grid">
+      <div class="meth-left">
+        <h3 class="meth-title-lg">Data-Driven Precision</h3>
+        <p class="meth-para">Watt.Wise is built on a rigorous scientific foundation. Every reading, every forecast, and every recommendation is grounded in real electrical engineering principles, machine learning models trained on millions of Indian household patterns, and verified against DISCOM billing data.</p>
+        <p class="meth-para">Our disaggregation engine achieves greater than 94% appliance identification accuracy in controlled tests, and our bill forecasts consistently land within 3% of actual DISCOM bills across all major tariff slabs.</p>
+      </div>
+      <div class="meth-right">
+        <table class="meth-table">
+          <tr>
+            <td>Measurement Standard</td>
+            <td>IEC 61000-4-30 Class A power quality compliance for voltage and current sensing</td>
+          </tr>
+          <tr>
+            <td>Disaggregation Engine</td>
+            <td>NILM (Non-Intrusive Load Monitoring) with a Factorial Hidden Markov Model trained on 2.4M Indian household records</td>
+          </tr>
+          <tr>
+            <td>Bill Forecasting</td>
+            <td>Slab-wise tariff engine covering 180+ DISCOM rate structures across India, updated quarterly</td>
+          </tr>
+          <tr>
+            <td>Carbon Intensity</td>
+            <td>State-specific CO2 emission factors sourced from Central Electricity Authority (CEA) annual reports</td>
+          </tr>
+          <tr>
+            <td>Data Sampling</td>
+            <td>High-frequency sampling at 1-second intervals; aggregated into minute, hourly, and daily views</td>
+          </tr>
+          <tr>
+            <td>Security</td>
+            <td>AES-256 encryption in transit and at rest. ISO 27001 certified infrastructure. GDPR-aligned data governance.</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── NATIONAL COMPARE ── -->
+  <section id="national-compare">
+    <div class="nc-header">
+      <span class="section-eyebrow">Benchmarking</span>
+      <h2 class="section-title reveal">HOW YOU<br>COMPARE</h2>
+    </div>
+    <div class="nc-grid">
+      <div class="nc-card">
+        <p class="nc-label">India National Average</p>
+        <div class="nc-value">90<span class="nc-unit">kWh / mo</span></div>
+        <p class="nc-sub">Average consumption per household per month across urban India (CEA 2023)</p>
+        <div class="nc-bar-bg"><div class="nc-bar-fill" style="width:45%"></div></div>
+      </div>
+      <div class="nc-card">
+        <p class="nc-label">Efficient Household Target</p>
+        <div class="nc-value">120<span class="nc-unit">kWh / mo</span></div>
+        <p class="nc-sub">BEE 4-star-equivalent household benchmark for a family of 4 in a tropical climate</p>
+        <div class="nc-bar-bg"><div class="nc-bar-fill green" style="width:60%"></div></div>
+      </div>
+      <div class="nc-card">
+        <p class="nc-label">Your Analyzer Estimate</p>
+        <div class="nc-value" id="nc-your-val">--<span class="nc-unit">kWh / mo</span></div>
+        <p class="nc-sub" id="nc-your-sub">Run the analyzer above to see how you compare against national benchmarks</p>
+        <div class="nc-bar-bg"><div class="nc-bar-fill amber" id="nc-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CASE STUDIES ── -->
+  <section id="case-studies">
+    <div class="cs-header">
+      <div>
+        <span class="section-eyebrow">Real Results</span>
+        <h2 class="section-title reveal">CASE<br>STUDIES</h2>
+      </div>
+      <a href="#" class="cs-link">View all studies &#8594;</a>
+    </div>
+    <div class="cs-grid">
+      <article class="cs-card">
+        <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=60" alt="Smart home energy dashboard" loading="lazy">
+        <div class="cs-overlay">
+          <p class="cs-tag">Residential &middot; Mumbai &middot; 2024</p>
+          <h3 class="cs-title">Smart Home Integration — 40% Bill Reduction in 3 Months</h3>
+        </div>
+        <span class="cs-arr">&#8599;</span>
+      </article>
+      <article class="cs-card">
+        <img src="https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=800&auto=format&fit=crop&q=60" alt="Solar panels on rooftop" loading="lazy">
+        <div class="cs-overlay">
+          <p class="cs-tag">Solar + Grid &middot; Pune &middot; 2024</p>
+          <h3 class="cs-title">Hybrid Solar Monitoring — Maximising Self-Consumption</h3>
+        </div>
+        <span class="cs-arr">&#8599;</span>
+      </article>
+      <article class="cs-card">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop&q=60" alt="Energy efficient kitchen appliances" loading="lazy">
+        <div class="cs-overlay">
+          <p class="cs-tag">Appliance Audit &middot; Bengaluru &middot; 2024</p>
+          <h3 class="cs-title">Kitchen Appliance Audit — Identifying Energy Vampires</h3>
+        </div>
+        <span class="cs-arr">&#8599;</span>
+      </article>
+      <article class="cs-card">
+        <img src="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&auto=format&fit=crop&q=60" alt="EV home charging" loading="lazy">
+        <div class="cs-overlay">
+          <p class="cs-tag">EV Charging &middot; Delhi &middot; 2024</p>
+          <h3 class="cs-title">EV Home Charging Optimisation — Off-Peak Scheduling</h3>
+        </div>
+        <span class="cs-arr">&#8599;</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <section id="stats">
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-num" data-target="220" data-prefix="" data-suffix="k+">220<span class="stat-suf">k+</span></div><p class="stat-lbl">Households Monitored</p></div>
+      <div class="stat-item"><div class="stat-num" data-target="450" data-prefix="Rs." data-suffix="cr">Rs.450<span class="stat-suf">cr</span></div><p class="stat-lbl">Total Bills Saved</p></div>
+      <div class="stat-item"><div class="stat-num" data-target="38" data-prefix="" data-suffix="%">38<span class="stat-suf">%</span></div><p class="stat-lbl">Avg. Consumption Drop</p></div>
+      <div class="stat-item"><div class="stat-num" data-target="4.9" data-prefix="" data-suffix="star">4.9<span class="stat-suf">*</span></div><p class="stat-lbl">User Satisfaction</p></div>
+    </div>
+  </section>
+
+  <!-- ── CARBON IMPACT ── -->
+  <section id="carbon">
+    <div class="carbon-header">
+      <span class="section-eyebrow">Environmental Impact</span>
+      <h2 class="section-title reveal">CARBON<br>IMPACT</h2>
+    </div>
+    <div class="carbon-grid">
+      <div class="carbon-card">
+        <div class="carbon-card-num">82<span class="c-unit">g CO2/kWh</span></div>
+        <div class="carbon-divider"></div>
+        <h3 class="carbon-card-title">India's Grid Emission Factor</h3>
+        <p class="carbon-card-desc">India's average grid emission intensity is 0.82 kg CO2 per kWh, one of the highest among major economies due to coal dependence. Reducing household consumption directly cuts this footprint.</p>
+      </div>
+      <div class="carbon-card">
+        <div class="carbon-card-num">1.4<span class="c-unit">tonnes / year</span></div>
+        <div class="carbon-divider"></div>
+        <h3 class="carbon-card-title">Average Urban Household Carbon Output</h3>
+        <p class="carbon-card-desc">A typical Indian urban household consuming 90 kWh per month contributes approximately 1.4 tonnes of CO2 annually from electricity alone — equivalent to driving 6,000 km in a petrol car.</p>
+      </div>
+      <div class="carbon-card">
+        <div class="carbon-card-num">35<span class="c-unit">%</span></div>
+        <div class="carbon-divider"></div>
+        <h3 class="carbon-card-title">Watt.Wise Users' Reduction</h3>
+        <p class="carbon-card-desc">On average, Watt.Wise users reduce their electricity carbon footprint by 35% within the first six months — saving approximately 490 kg of CO2 per household per year through smarter consumption habits.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TESTIMONIALS ── -->
+  <section id="testimonials">
+    <div class="test-header">
+      <div>
+        <span class="section-eyebrow">User Stories</span>
+        <h2 class="section-title reveal">WHAT THEY<br>SAY</h2>
+      </div>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-quote">Within two months of using Watt.Wise, I identified that my old water heater was consuming nearly 40% of my total electricity. I replaced it and my bill dropped by Rs.1,200 per month. The payback period was just 8 months.</p>
+        <div class="test-divider"></div>
+        <p class="test-author-name">Rajesh Iyer</p>
+        <p class="test-author-role">Software Engineer, Bengaluru</p>
+      </div>
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-quote">As a housing society manager overseeing 240 flats, we needed precise data to justify infrastructure upgrades. Watt.Wise gave us appliance-level granularity across every unit and helped us reduce common area consumption by 28%.</p>
+        <div class="test-divider"></div>
+        <p class="test-author-name">Sunita Agarwal</p>
+        <p class="test-author-role">Society Manager, Pune</p>
+      </div>
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-quote">The solar integration feature is exceptional. I can see exactly how much I generate, consume, and export back to the grid in real time. My net electricity expenditure is now under Rs.200 per month for a 3BHK apartment.</p>
+        <div class="test-divider"></div>
+        <p class="test-author-name">Dr. Meena Pillai</p>
+        <p class="test-author-role">Physician &amp; Homeowner, Kochi</p>
+      </div>
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-quote">The bill forecasting accuracy is remarkable. I've been using Watt.Wise for a year and not a single monthly prediction has been off by more than Rs.50. It has genuinely changed how my family thinks about energy use.</p>
+        <div class="test-divider"></div>
+        <p class="test-author-name">Karan Mehta</p>
+        <p class="test-author-role">Business Owner, Ahmedabad</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TEAM ── -->
+  <section id="team">
+    <div class="team-hdr">
+      <h2 class="section-title">OUR TEAM</h2>
+      <p class="team-sub">-- THE <span>ARCHITECTS</span> OF YOUR ENERGY FUTURE --</p>
+    </div>
+    <div class="team-grid">
+      <article class="team-card">
+        <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=70" alt="Arjun Mehta" loading="lazy">
+        <div class="team-info"><p class="team-name">Arjun Mehta</p><p class="team-role">Chief Energy Analyst</p></div>
+      </article>
+      <article class="team-card">
+        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=70" alt="Priya Sharma" loading="lazy">
+        <div class="team-info"><p class="team-name">Priya Sharma</p><p class="team-role">Head of AI &amp; Data Science</p></div>
+      </article>
+      <article class="team-card">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=70" alt="Rohan Verma" loading="lazy">
+        <div class="team-info"><p class="team-name">Rohan Verma</p><p class="team-role">IoT Systems Engineer</p></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── PRICING ── -->
+  <section id="pricing">
+    <div class="pricing-hdr">
+      <span class="section-eyebrow">Plans</span>
+      <h2 class="section-title reveal">PRICING</h2>
+    </div>
+    <div class="pricing-grid">
+      <div class="p-card">
+        <p class="p-plan">Starter</p>
+        <div class="p-price">Free</div>
+        <p class="p-per">Forever free</p>
+        <p class="p-desc">For households beginning their energy-saving journey.</p>
+        <div class="p-div"></div>
+        <ul class="p-feats">
+          <li>Real-time consumption dashboard</li>
+          <li>Up to 3 appliance profiles</li>
+          <li>Monthly bill estimate</li>
+          <li>Basic energy-saving tips</li>
+          <li>7-day usage history</li>
+        </ul>
+        <a href="#cta" class="p-cta">Get Started</a>
+      </div>
+      <div class="p-card featured">
+        <span class="p-badge">Most Popular</span>
+        <p class="p-plan">Pro</p>
+        <div class="p-price">Rs.299</div>
+        <p class="p-per">per month</p>
+        <p class="p-desc">Full insights and AI-driven savings for serious households.</p>
+        <div class="p-div"></div>
+        <ul class="p-feats">
+          <li>Unlimited appliance profiling</li>
+          <li>AI-powered recommendations</li>
+          <li>Tariff comparison alerts</li>
+          <li>Bill spike SMS / email alerts</li>
+          <li>1-year historical data</li>
+          <li>EV and solar integration</li>
+        </ul>
+        <a href="#cta" class="p-cta">Start Free Trial</a>
+      </div>
+      <div class="p-card">
+        <p class="p-plan">Enterprise</p>
+        <div class="p-price">Custom</div>
+        <p class="p-per">Tailored quote</p>
+        <p class="p-desc">For housing societies, property managers, and commercial complexes.</p>
+        <div class="p-div"></div>
+        <ul class="p-feats">
+          <li>Multi-unit monitoring</li>
+          <li>Centralised energy dashboard</li>
+          <li>API access and integrations</li>
+          <li>Dedicated account manager</li>
+          <li>White-label reporting</li>
+          <li>Priority SLA support</li>
+        </ul>
+        <a href="#cta" class="p-cta">Contact Us</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── INSIGHTS ── -->
+  <section id="insights">
+    <div class="ins-header">
+      <div>
+        <span class="section-eyebrow">Knowledge</span>
+        <h2 class="section-title reveal">INSIGHTS</h2>
+      </div>
+      <a href="#" class="ins-link">View all articles &#8594;</a>
+    </div>
+    <div class="ins-grid">
+      <article class="ins-card">
+        <p class="ins-date">October 2024</p>
+        <h3 class="ins-hl">Why Your AC Is Silently Draining Your Wallet</h3>
+        <p class="ins-ex">Air conditioning accounts for up to 55% of summer electricity bills. Learn how smart scheduling and temperature setpoints can slash your cooling costs significantly.</p>
+      </article>
+      <article class="ins-card">
+        <p class="ins-date">September 2024</p>
+        <h3 class="ins-hl">The Hidden Cost of Standby Power in Indian Homes</h3>
+        <p class="ins-ex">Devices on standby consume 10-15% of your monthly electricity. Discover the worst offenders and how to eliminate phantom loads without disrupting your routine.</p>
+      </article>
+      <article class="ins-card">
+        <p class="ins-date">August 2024</p>
+        <h3 class="ins-hl">Solar + Grid: How to Get the Best of Both Worlds</h3>
+        <p class="ins-ex">Combining rooftop solar with smart grid monitoring can reduce your net electricity bill to near zero. A practical step-by-step guide for Indian homeowners.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── FAQ ── -->
+  <section id="faq">
+    <div class="faq-hdr">
+      <h2 class="section-title" style="font-size:clamp(52px,8vw,100px)">FAQ</h2>
+      <p class="faq-intro">Everything you need to know about Watt.Wise. Can't find your answer? <a href="#cta" style="color:var(--white);border-bottom:1px solid var(--border)">Contact us</a>.</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How does Watt.Wise measure my electricity consumption?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>Watt.Wise connects to a smart energy monitor installed on your main distribution board. It transmits real-time current and voltage data via Wi-Fi to our cloud platform, giving you second-by-second readings without any rewiring.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can it detect which appliance is consuming the most power?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>Yes. Our AI uses Non-Intrusive Load Monitoring (NILM) technology to disaggregate your total usage into individual appliance profiles without needing a sensor on every device. Accuracy exceeds 94% in controlled tests.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How accurate are the bill forecasts?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>Our bill forecasts are within plus or minus 3% accuracy for most DISCOM tariff structures in India. We cover 180+ utility rate structures, updated quarterly, and apply the correct slab pricing to your usage automatically.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Is my energy data private and secure?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>All data is encrypted end-to-end using AES-256, stored on ISO 27001-certified infrastructure, and never sold to third parties. You retain full data ownership and can request deletion at any time through the app settings.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Does it work with solar panels and EV chargers?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>Yes. The Pro plan supports bi-directional monitoring, tracking both grid import and solar export. EV charging sessions are also tracked and can be automatically scheduled during off-peak hours through the app.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What is the installation process like?<span class="faq-ico">+</span></button>
+        <div class="faq-a"><p>A certified technician installs the non-invasive clamp meter on your distribution board in under 30 minutes. No rewiring, no tools, no power shutdown required. The device pairs to your Wi-Fi network via the Watt.Wise app and starts streaming data immediately.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section id="cta">
+    <h2 class="cta-title">START<br><span>SAVING</span><br>TODAY.</h2>
+    <a href="#pricing" class="cta-btn">Explore Plans &nbsp;&#8594;</a>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-top">
+      <div>
+        <p class="footer-logo">WATT.WISE</p>
+        <p class="footer-tagline">Intelligent household electricity analysis for a smarter, greener future.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <p class="footer-col-lbl">Platform</p>
+          <ul>
+            <li><a href="#about">About</a></li>
+            <li><a href="#analyzer">Analyzer</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <p class="footer-col-lbl">Resources</p>
+          <ul>
+            <li><a href="#insights">Insights</a></li>
+            <li><a href="#methodology">Methodology</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#cta">API Docs</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <p class="footer-col-lbl">Contact</p>
+          <ul>
+            <li><a href="mailto:hello@wattwise.in">hello@wattwise.in</a></li>
+            <li><a href="tel:+918001234567">+91 800 123 4567</a></li>
+            <li><a href="#cta">Support Portal</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-btm">
+      <p class="footer-copy">2024 Watt.Wise. All rights reserved.</p>
+      <div class="footer-socials">
+        <a href="#">Twitter</a>
+        <a href="#">Instagram</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">YouTube</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ══ JAVASCRIPT ══ -->
+  <script>
+    /* Cursor */
+    const cur = document.getElementById('cursor');
+    const crg = document.getElementById('cursor-ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+    (function loop(){rx+=(mx-rx)*.11;ry+=(my-ry)*.11;crg.style.left=rx+'px';crg.style.top=ry+'px';requestAnimationFrame(loop);})();
+    document.querySelectorAll('a,button,.svc-card,.cs-card,.team-card,.p-card').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';crg.style.width='52px';crg.style.height='52px';});
+      el.addEventListener('mouseleave',()=>{cur.style.width='9px';cur.style.height='9px';crg.style.width='36px';crg.style.height='36px';});
+    });
+
+    /* Navbar scroll */
+    window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',scrollY>60);},{passive:true});
+
+    /* Hero parallax */
+    const hwords=document.querySelectorAll('.h-word');
+    window.addEventListener('scroll',()=>{hwords.forEach((w,i)=>{w.style.transform=`translateX(${(i%2===0?-1:1)*scrollY*.04}px)`;});},{passive:true});
+
+    /* Mobile menu */
+    const mob=document.getElementById('mob-menu');
+    document.getElementById('mob-open').addEventListener('click',()=>{mob.classList.add('open');document.body.style.overflow='hidden';});
+    document.getElementById('mob-close').addEventListener('click',closeMenu);
+    function closeMenu(){mob.classList.remove('open');document.body.style.overflow='';}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu();});
+
+    /* Reveal */
+    const revObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');revObs.unobserve(e.target);}});},{threshold:.13,rootMargin:'0px 0px -50px 0px'});
+    document.querySelectorAll('.reveal,.about-tagline,.stat-item').forEach(el=>revObs.observe(el));
+
+    /* FAQ */
+    document.querySelectorAll('.faq-q').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const item=btn.closest('.faq-item');
+        const open=item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(i=>{i.classList.remove('open');i.querySelector('.faq-q').setAttribute('aria-expanded','false');});
+        if(!open){item.classList.add('open');btn.setAttribute('aria-expanded','true');}
+      });
+    });
+
+    /* Stat counters */
+    const sObs=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting)return;
+        const el=entry.target;
+        const pre=el.dataset.prefix||'';
+        const suf=el.dataset.suffix||'';
+        const tar=parseFloat(el.dataset.target);
+        const dur=1800,st=performance.now();
+        function step(now){
+          const p=Math.min((now-st)/dur,1);
+          const ease=1-Math.pow(1-p,3);
+          const v=tar*ease;
+          el.innerHTML=pre+(Number.isInteger(tar)?Math.round(v):v.toFixed(1))+'<span class="stat-suf">'+suf+'</span>';
+          if(p<1)requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        sObs.unobserve(el);
+      });
+    },{threshold:.5});
+    document.querySelectorAll('.stat-num[data-target]').forEach(el=>sObs.observe(el));
+
+    /* ═══════════════ ANALYZER ENGINE ═══════════════ */
+    const COLS=['#ffffff','#a8a8a8','#606060','#404040','#d0d0d0'];
+    let apps=[
+      {name:'Air Conditioner (1.5 ton)',watts:1500,hours:8},
+      {name:'Refrigerator',watts:150,hours:24},
+      {name:'Ceiling Fan',watts:75,hours:12},
+      {name:'Television (LED)',watts:100,hours:5},
+    ];
+
+    function kwhRow(a,days){return(a.watts/1000)*a.hours*days;}
+
+    function renderRows(){
+      const days=parseFloat(document.getElementById('days').value)||30;
+      const tbody=document.getElementById('appliance-rows');
+      tbody.innerHTML='';
+      apps.forEach((app,idx)=>{
+        const kw=kwhRow(app,days);
+        const row=document.createElement('div');
+        row.className='appliance-row';
+        row.innerHTML=`
+          <span class="row-name">${app.name}</span>
+          <input type="number" class="rw" value="${app.watts}" min="1" max="50000" step="1" data-idx="${idx}">
+          <input type="number" class="rh" value="${app.hours}" min="0.1" max="24" step="0.5" data-idx="${idx}">
+          <span class="row-kwh kwh-col">${kw.toFixed(1)}</span>
+          <button class="row-del" data-idx="${idx}">x</button>
+        `;
+        tbody.appendChild(row);
+      });
+      tbody.querySelectorAll('.rw').forEach(i=>i.addEventListener('input',()=>{apps[+i.dataset.idx].watts=parseFloat(i.value)||0;calc();}));
+      tbody.querySelectorAll('.rh').forEach(i=>i.addEventListener('input',()=>{apps[+i.dataset.idx].hours=parseFloat(i.value)||0;calc();}));
+      tbody.querySelectorAll('.row-del').forEach(b=>b.addEventListener('click',()=>{apps.splice(+b.dataset.idx,1);renderRows();calc();}));
+    }
+
+    function calc(){
+      const days=parseFloat(document.getElementById('days').value)||30;
+      const tariff=parseFloat(document.getElementById('tariff').value)||7;
+      const occ=parseFloat(document.getElementById('occupants').value)||1;
+      const kwhs=apps.map(a=>kwhRow(a,days));
+      const total=kwhs.reduce((s,v)=>s+v,0);
+      const bill=total*tariff;
+      const co2=total*.82;
+
+      document.querySelectorAll('.kwh-col').forEach((el,i)=>{el.textContent=kwhs[i]?kwhs[i].toFixed(1):'0.0';});
+
+      document.getElementById('r-kwh').innerHTML=total.toFixed(1)+'<span class="res-unit">kWh</span>';
+      document.getElementById('r-bill').innerHTML='Rs.'+Math.round(bill).toLocaleString('en-IN')+'<span class="res-unit">/ mo</span>';
+      document.getElementById('r-co2').innerHTML=co2.toFixed(1)+'<span class="res-unit">kg</span>';
+      document.getElementById('r-daily-kwh').textContent='Daily average: '+(total/days).toFixed(2)+' kWh';
+      document.getElementById('r-per-head').textContent='Per person: Rs.'+Math.round(bill/occ).toLocaleString('en-IN');
+
+      /* National compare */
+      const ncVal=document.getElementById('nc-your-val');
+      const ncSub=document.getElementById('nc-your-sub');
+      const ncBar=document.getElementById('nc-bar');
+      ncVal.innerHTML=total.toFixed(0)+'<span class="nc-unit">kWh / mo</span>';
+      const pct=Math.min((total/300)*100,100);
+      ncBar.style.width=pct+'%';
+      if(total===0){ncSub.textContent='Run the analyzer above to see how you compare.';ncBar.className='nc-bar-fill';}
+      else if(total<90){ncSub.textContent='Below national average — excellent efficiency.';ncBar.className='nc-bar-fill green';}
+      else if(total<150){ncSub.textContent='Around national average for an urban household.';ncBar.className='nc-bar-fill amber';}
+      else{ncSub.textContent='Above average — significant savings possible.';ncBar.className='nc-bar-fill red';}
+
+      /* Donut */
+      const sorted=apps.map((a,i)=>({name:a.name,kwh:kwhs[i]})).sort((a,b)=>b.kwh-a.kwh).slice(0,5);
+      const leg=document.getElementById('donut-leg');
+      leg.innerHTML='';
+      if(total>0){
+        const circ=2*Math.PI*34;
+        const pctBig=(sorted[0].kwh/total)*100;
+        document.getElementById('donut-arc').setAttribute('stroke-dasharray',`${(pctBig/100)*circ} ${circ}`);
+        sorted.forEach((item,ci)=>{
+          const p=((item.kwh/total)*100).toFixed(0);
+          const div=document.createElement('div');div.className='leg-item';
+          div.innerHTML=`<span class="leg-dot" style="background:${COLS[ci]}"></span><span class="leg-txt"><strong>${item.name.split('(')[0].trim()}</strong> ${p}%</span>`;
+          leg.appendChild(div);
+        });
+      } else {
+        document.getElementById('donut-arc').setAttribute('stroke-dasharray','0 214');
+        leg.innerHTML='<p class="leg-txt" style="color:var(--gray)">Add appliances to see breakdown</p>';
+      }
+
+      /* Rating */
+      let pctBar,rTxt,rCol;
+      if(total===0){pctBar=0;rTxt='--';rCol='rgba(255,255,255,0.15)';}
+      else if(total<90) {pctBar=96;rTxt='Excellent  --  Below National Average';rCol='#7fff6e';}
+      else if(total<150){pctBar=74;rTxt='Good  --  Around National Average';rCol='#c8f542';}
+      else if(total<300){pctBar=50;rTxt='Average  --  Moderate Consumption';rCol='#f5c842';}
+      else if(total<500){pctBar=26;rTxt='High  --  Above Average Usage';rCol='#f58a42';}
+      else              {pctBar=8; rTxt='Very High  --  Significant Reduction Recommended';rCol='#ff6b6b';}
+      document.getElementById('r-bar').style.width=pctBar+'%';
+      document.getElementById('r-bar').style.background=rCol;
+      document.getElementById('r-rating-txt').textContent=rTxt;
+
+      /* Tips */
+      renderTips(sorted,total,days,tariff);
+    }
+
+    function renderTips(sorted,total,days,tariff){
+      const el=document.getElementById('tips-list');
+      el.innerHTML='';
+      const tips=[];
+      if(total===0){el.innerHTML='<div class="tip-row"><div class="tip-bullet"></div><p class="tip-txt">Add appliances above to receive personalised energy-saving recommendations.</p></div>';return;}
+      const ac=apps.find(a=>a.name.toLowerCase().includes('air conditioner'));
+      if(ac&&ac.hours>6) tips.push(`Your AC runs ${ac.hours} hours per day. Setting the thermostat to 24C instead of 18C reduces AC energy use by approximately 30%, saving Rs.${Math.round(ac.watts/1000*(ac.hours*.3)*tariff*days)} per month.`);
+      const gy=apps.find(a=>a.name.toLowerCase().includes('geyser')||a.name.toLowerCase().includes('water heater'));
+      if(gy&&gy.hours>1) tips.push(`Your water heater runs ${gy.hours} hours daily. Insulating the tank and setting the thermostat to 55C can cut geyser energy by 20-25%.`);
+      if(sorted.length>0&&total>0){const top=sorted[0];const p=((top.kwh/total)*100).toFixed(0);if(p>38)tips.push(`${top.name.split('(')[0].trim()} accounts for ${p}% of your total usage. Reducing its daily hours by 1-2 would be your single highest-impact change.`);}
+      if(total>300) tips.push('Your consumption exceeds 300 kWh per month. A professional energy audit typically identifies 20-35% savings in households at this level.');
+      tips.push('Shift washing machine and dishwasher cycles to off-peak hours (11 PM to 6 AM) to take advantage of time-of-use tariff savings where applicable.');
+      tips.push('Unplug chargers, routers, and entertainment systems at the mains when not in use. Standby power can account for up to 12% of a household electricity bill.');
+      tips.slice(0,4).forEach(t=>{const div=document.createElement('div');div.className='tip-row';div.innerHTML=`<div class="tip-bullet"></div><p class="tip-txt">${t}</p>`;el.appendChild(div);});
+    }
+
+    /* Add appliance */
+    document.getElementById('add-btn').addEventListener('click',()=>{
+      const sel=document.getElementById('app-select');
+      const val=sel.value;
+      if(!val)return;
+      const [nm,wt]=val.split('|');
+      let name=nm;
+      if(nm==='Custom')name=prompt('Enter appliance name:')||'Custom Appliance';
+      apps.push({name,watts:parseInt(wt)||100,hours:4});
+      renderRows();calc();sel.value='';
+    });
+    document.getElementById('calc-btn').addEventListener('click',()=>{renderRows();calc();});
+    ['tariff','days','occupants'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{renderRows();calc();}));
+
+    /* Init */
+    renderRows();
+    calc();
+  </script>
+</body>
+</html>
